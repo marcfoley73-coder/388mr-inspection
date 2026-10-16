@@ -43,7 +43,7 @@ textarea{min-height:90px}label{font-weight:600;display:block;margin:10px 0 6px}
 // ===== EDIT CHECKLISTS HERE =====
 const FLOORS=["Basement","Ground","Level 1","Level 2","Level 3","Level 4","Roof"];
 const COMMON=["Lighting not working","Damaged walls","Damaged carpet / flooring","Fire doors working and closing properly","Exit signs and emergency lighting","Fire extinguishers / hose reels present and in date","Cleanliness / rubbish","Doors, locks and access","Signage","Trip hazards"];
-const EXTRA={"Basement":["Car park door / gate operating","Drainage / water leaks"],"Roof":["Roof access secured","Gutters / drains clear","Plant equipment condition"]};
+const EXTRA={"Basement":["Car park door / gate operating","Drainage / water leaks","Bin room odour"],"Roof":["Roof access secured","Gutters / drains clear","Plant equipment condition"]};
 const DEFAULT_INSPECTOR="Marc Foley";
 // ================================
 const itemsFor=f=>COMMON.concat(EXTRA[f]||[]);
@@ -80,12 +80,12 @@ async function render(){
  }else if(view==="floor"){const f=FLOORS[floorIdx],fl=cur.floors[f];
   app.innerHTML=`<div class="tabs">${FLOORS.map((x,i)=>`<button data-t="${i}" class="${i===floorIdx?"on":""}">${x}</button>`).join("")}</div>
   <div class="card"><div class="irow"><h2 style="margin:0;flex:1">${f}</h2><button class="btn2" id="allok">Mark unset as OK</button></div>
-  ${itemsFor(f).map((it,k)=>{const v=fl.items[it];return`<div class="item" data-k="${k}"><div class="irow"><div class="iname">${it}</div><div class="seg"><button class="s-ok ${v.s==="ok"?"on":""}" data-s="ok">OK</button><button class="s-is ${v.s==="issue"?"on":""}" data-s="issue">Issue</button><button class="s-na ${v.s==="na"?"on":""}" data-s="na">N/A</button></div><button class="nb" data-n>${v.n?"✎ Note":"+ Note"}</button></div><input type="text" class="note ${v.n||v.s==="issue"?"":"hidden"}" placeholder="Note (location, details)" value="${esc(v.n)}"></div>`}).join("")}</div>
+  ${itemsFor(f).map((it,k)=>{const v=fl.items[it]||(fl.items[it]={s:"",n:""});return`<div class="item" data-k="${k}"><div class="irow"><div class="iname">${it}</div><div class="seg"><button class="s-ok ${v.s==="ok"?"on":""}" data-s="ok">OK</button><button class="s-is ${v.s==="issue"?"on":""}" data-s="issue">Issue</button><button class="s-na ${v.s==="na"?"on":""}" data-s="na">N/A</button></div><button class="nb" data-n>${v.n?"✎ Note":"+ Note"}</button></div><input type="text" class="note ${v.n||v.s==="issue"?"":"hidden"}" placeholder="Note (location, details)" value="${esc(v.n)}"></div>`}).join("")}</div>
   <div class="card"><label style="margin-top:0">General comments</label><textarea id="gc">${esc(fl.comments)}</textarea></div>
   <div class="card"><div class="irow"><h3 style="margin:0;flex:1">Photos</h3><button id="addp">📷 Add photos</button></div><div class="photos">${fl.photos.map((p,i)=>`<div class="ph"><img src="${p.data}"><button class="x" data-x="${i}">✕</button><input type="text" data-c="${i}" placeholder="Caption" value="${esc(p.caption)}"></div>`).join("")}</div></div>
   <div class="row noprint">${floorIdx>0?`<button class="btn2" data-t="${floorIdx-1}">&larr; ${FLOORS[floorIdx-1]}</button>`:"<span></span>"}${floorIdx<FLOORS.length-1?`<button data-t="${floorIdx+1}">${FLOORS[floorIdx+1]} &rarr;</button>`:`<button id="done">Done – back to floors</button>`}</div>`;
   app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{floorIdx=+b.dataset.t;render();scrollTo(0,0)});
-  app.querySelectorAll(".item").forEach(d=>{const it=itemsFor(f)[d.dataset.k],v=fl.items[it],note=d.querySelector(".note");
+  app.querySelectorAll(".item").forEach(d=>{const it=itemsFor(f)[d.dataset.k],v=fl.items[it]||(fl.items[it]={s:"",n:""}),note=d.querySelector(".note");
    d.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{v.s=v.s===b.dataset.s?"":b.dataset.s;d.querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x.dataset.s===v.s));if(v.s==="issue"){note.classList.remove("hidden")}save()});
    d.querySelector("[data-n]").onclick=()=>{note.classList.remove("hidden");note.focus()};note.oninput=()=>{v.n=note.value;save()}});
   $("#allok").onclick=()=>{Object.values(fl.items).forEach(v=>{if(!v.s)v.s="ok"});save();render()};
@@ -93,12 +93,12 @@ async function render(){
   app.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{if(confirm("Delete this photo?")){fl.photos.splice(+b.dataset.x,1);save();render()}});
   app.querySelectorAll("[data-c]").forEach(i=>i.oninput=()=>{fl.photos[+i.dataset.c].caption=i.value;save()});
   const d=$("#done");if(d)d.onclick=()=>go("overview");
- }else if(view==="report"){const issues=[];FLOORS.forEach(f=>itemsFor(f).forEach(it=>{const v=cur.floors[f].items[it];if(v.s==="issue")issues.push([f,it,v.n])}));
+ }else if(view==="report"){const issues=[];FLOORS.forEach(f=>itemsFor(f).forEach(it=>{const v=cur.floors[f].items[it]||(cur.floors[f].items[it]={s:"",n:""});if(v.s==="issue")issues.push([f,it,v.n])}));
   const lbl={ok:"OK",issue:"ISSUE",na:"N/A","":"Not checked"};
   app.innerHTML=`<div class="noprint card row"><button onclick="print()">🖨 Print / Save as PDF</button></div><div id="report">
   <h1 style="margin:0">388 Murray Road, Preston VIC</h1><div>Owners Corporation PS 733538 – Monthly Building Inspection</div><p><b>Date:</b> ${fmt(cur.date)} &nbsp; <b>Inspector:</b> ${esc(cur.inspector)}</p>
   <div class="sum"><h2 style="border:0;margin:4px 0">Summary of issues (${issues.length})</h2>${issues.length?`<ol>${issues.map(i=>`<li><b>${i[0]}</b> – ${i[1]}${i[2]?": "+esc(i[2]):""}</li>`).join("")}</ol>`:"<p>No issues recorded.</p>"}</div>
-  ${FLOORS.map(f=>{const fl=cur.floors[f],[s]=status(f);return`<div class="fsec"><h2>${f} – ${s}</h2><table><tr><th>Item</th><th style="width:110px">Result</th><th>Note</th></tr>${itemsFor(f).map(it=>{const v=fl.items[it];return`<tr class="${v.s==="issue"?"rIssue":""}"><td>${it}</td><td>${lbl[v.s]}</td><td>${esc(v.n)}</td></tr>`}).join("")}</table>${fl.comments?`<p><b>Comments:</b> ${esc(fl.comments).replace(/\n/g,"<br>")}</p>`:""}${fl.photos.map(p=>`<div class="rp"><img src="${p.data}"><div>${esc(p.caption)}</div></div>`).join("")}</div>`}).join("")}</div>`;
+  ${FLOORS.map(f=>{const fl=cur.floors[f],[s]=status(f);return`<div class="fsec"><h2>${f} – ${s}</h2><table><tr><th>Item</th><th style="width:110px">Result</th><th>Note</th></tr>${itemsFor(f).map(it=>{const v=fl.items[it]||(fl.items[it]={s:"",n:""});return`<tr class="${v.s==="issue"?"rIssue":""}"><td>${it}</td><td>${lbl[v.s]}</td><td>${esc(v.n)}</td></tr>`}).join("")}</table>${fl.comments?`<p><b>Comments:</b> ${esc(fl.comments).replace(/\n/g,"<br>")}</p>`:""}${fl.photos.map(p=>`<div class="rp"><img src="${p.data}"><div>${esc(p.caption)}</div></div>`).join("")}</div>`}).join("")}</div>`;
  }}
 function shrink(file){return new Promise(res=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const M=1600,sc=Math.min(1,M/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",0.8))};im.onerror=()=>res(null);im.src=u})}
 $("#cam").onchange=async e=>{const fl=cur.floors[FLOORS[floorIdx]];for(const f of e.target.files){const d=await shrink(f);if(d)fl.photos.push({data:d,caption:""})}e.target.value="";save();render()};
