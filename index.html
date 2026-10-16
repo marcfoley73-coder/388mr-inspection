@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="388 Inspect">
+<meta name="theme-color" content="#1f4e79">
+<title>388 Murray Road - Monthly Building Inspection</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,system-ui,Helvetica,Arial,sans-serif;background:#f2f4f7;color:#1c2430;font-size:18px}
+header{background:#1f4e79;color:#fff;padding:calc(env(safe-area-inset-top) + 14px) 20px 14px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+header h1{font-size:20px;margin:0;flex:1}main{padding:20px;max-width:1100px;margin:auto}
+button,.btn{font:inherit;min-height:52px;padding:0 20px;border-radius:12px;border:0;background:#1f4e79;color:#fff;cursor:pointer}
+.btn2{background:#e3e8ef;color:#1c2430}.danger{background:#c0392b}.hb{background:rgba(255,255,255,.18);min-height:44px}
+.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+input[type=text],input[type=date],textarea{font:inherit;width:100%;padding:12px;border:1px solid #cdd5df;border-radius:10px;background:#fff}
+textarea{min-height:90px}label{font-weight:600;display:block;margin:10px 0 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.floor{background:#fff;border-radius:16px;padding:22px;min-height:120px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.1);cursor:pointer;border:3px solid transparent}
+.floor h3{margin:0;font-size:24px}.badge{display:inline-block;padding:6px 12px;border-radius:20px;font-size:15px;font-weight:600}
+.b-ns{background:#e3e8ef;color:#556}.b-ok{background:#d4f4dd;color:#17692f}.b-is{background:#fde2e0;color:#a52a1e}.b-ip{background:#fff1c9;color:#7a5a00}
+.item{border-bottom:1px solid #eef0f3;padding:12px 0}.item:last-child{border:0}.irow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.iname{flex:1;min-width:220px;font-weight:500}
+.seg{display:flex;gap:6px}.seg button{min-width:76px;background:#e3e8ef;color:#1c2430;min-height:50px}
+.seg .s-ok.on{background:#27ae60;color:#fff}.seg .s-is.on{background:#c0392b;color:#fff}.seg .s-na.on{background:#7f8c8d;color:#fff}
+.note{margin-top:8px}.nb{background:none;color:#1f4e79;min-height:44px;padding:0 8px}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}.tabs button{white-space:nowrap;background:#e3e8ef;color:#1c2430}.tabs button.on{background:#1f4e79;color:#fff}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px}.ph{position:relative}.ph img{width:100%;height:140px;object-fit:cover;border-radius:10px}
+.ph .x{position:absolute;top:6px;right:6px;min-height:40px;width:40px;padding:0;border-radius:20px;background:rgba(0,0,0,.6)}.ph input{margin-top:4px;padding:8px;font-size:15px}
+.past{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #eef0f3}.past div{flex:1}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1;min-width:200px}.hidden{display:none}
+#report{background:#fff;padding:24px;font-size:15px}#report h2{border-bottom:2px solid #1f4e79;padding-bottom:4px}#report table{width:100%;border-collapse:collapse;margin-bottom:10px}
+#report td,#report th{border:1px solid #ccd;padding:6px;text-align:left;vertical-align:top}.rIssue{background:#fde2e0;font-weight:600}
+#report .rp{display:inline-block;width:31%;margin:1%;vertical-align:top;break-inside:avoid}#report .rp img{width:100%}.sum{background:#fff6f5;border:2px solid #c0392b;padding:10px 14px;border-radius:8px}
+@media print{header,.noprint{display:none!important}body{background:#fff}main{padding:0;max-width:none}#report{padding:0}.fsec{break-before:page}}
+</style></head><body>
+<header><button class="hb hidden" id="back">&larr; Back</button><h1>388 Murray Road - Monthly Building Inspection</h1></header>
+<main id="app"></main>
+<input type="file" id="cam" accept="image/*" capture="environment" multiple class="hidden">
+<input type="file" id="imp" accept="application/json,.json" class="hidden">
+<script>
+// ===== EDIT CHECKLISTS HERE =====
+const FLOORS=["Basement","Ground","Level 1","Level 2","Level 3","Level 4","Roof"];
+const COMMON=["Lighting not working","Damaged walls","Damaged carpet / flooring","Fire doors working and closing properly","Exit signs and emergency lighting","Fire extinguishers / hose reels present and in date","Cleanliness / rubbish","Doors, locks and access","Signage","Trip hazards"];
+const EXTRA={"Basement":["Car park door / gate operating","Drainage / water leaks"],"Roof":["Roof access secured","Gutters / drains clear","Plant equipment condition"]};
+const DEFAULT_INSPECTOR="Marc Foley";
+// ================================
+const itemsFor=f=>COMMON.concat(EXTRA[f]||[]);
+let db,cur=null,view="home",floorIdx=0;
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open("inspect388",1);r.onupgradeneeded=()=>r.result.createObjectStore("insp",{keyPath:"id"});r.onsuccess=()=>{db=r.result;res()};r.onerror=()=>rej(r.error)})}
+const tx=(m)=>db.transaction("insp",m).objectStore("insp");
+const put=o=>new Promise(r=>{tx("readwrite").put(o).onsuccess=r});
+const all=()=>new Promise(r=>{tx("readonly").getAll().onsuccess=e=>r(e.target.result)});
+const del=id=>new Promise(r=>{tx("readwrite").delete(id).onsuccess=r});
+let saveT;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{cur.updated=Date.now();put(cur)},300)}
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function newInsp(date,name){const floors={};FLOORS.forEach(f=>{floors[f]={items:{},comments:"",photos:[]};itemsFor(f).forEach(i=>floors[f].items[i]={s:"",n:""})});return{id:"i"+Date.now(),date,inspector:name,floors,updated:Date.now()}}
+function status(f){const fl=cur.floors[f],v=Object.values(fl.items);if(v.some(x=>x.s==="issue"))return["Issues","b-is"];const done=v.filter(x=>x.s).length;if(!done&&!fl.comments&&!fl.photos.length)return["Not started","b-ns"];if(done<v.length)return["In progress ("+done+"/"+v.length+")","b-ip"];return["OK","b-ok"]}
+const fmt=d=>new Date(d+"T00:00").toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+function go(v){view=v;$("#back").classList.toggle("hidden",v==="home");render();scrollTo(0,0)}
+$("#back").onclick=()=>go(view==="floor"||view==="report"?"overview":"home");
+async function render(){
+ if(view==="home"){const list=(await all()).sort((a,b)=>b.date.localeCompare(a.date)||b.updated-a.updated);
+  app.innerHTML=`<div class="card"><h2 style="margin-top:0">New inspection</h2><div class="row"><div><label>Date</label><input type="date" id="nd" value="${today()}"></div><div><label>Inspector</label><input type="text" id="nn" value="${DEFAULT_INSPECTOR}"></div></div><p><button id="start" style="width:100%">Start inspection</button></p></div>
+  <div class="card"><h2 style="margin-top:0">Past inspections</h2>${list.length?list.map(i=>{cur=i;const n=FLOORS.reduce((a,f)=>a+Object.values(i.floors[f].items).filter(x=>x.s==="issue").length,0);return`<div class="past"><div><b>${fmt(i.date)}</b><br><small>${esc(i.inspector)} · ${n} issue${n==1?"":"s"}</small></div><button data-o="${i.id}">Open</button><button class="btn2" data-d="${i.id}">Delete</button></div>`}).join(""):"<p>No inspections yet.</p>"}</div>
+  <div class="card"><h3 style="margin-top:0">Backup</h3><div class="row"><button class="btn2" id="exp">Export all (JSON)</button><button class="btn2" id="impb">Import backup</button></div><small>Data is stored on this iPad only. Export regularly to keep a backup.</small></div>`;
+  $("#start").onclick=async()=>{cur=newInsp($("#nd").value||today(),$("#nn").value||DEFAULT_INSPECTOR);await put(cur);go("overview")};
+  app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{cur=list.find(i=>i.id===b.dataset.o);go("overview")});
+  app.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(confirm("Delete this inspection and its photos?")){await del(b.dataset.d);render()}});
+  $("#exp").onclick=async()=>{const blob=new Blob([JSON.stringify({app:"inspect388",v:1,inspections:await all()})],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="388-inspections-"+today()+".json";a.click()};
+  $("#impb").onclick=()=>$("#imp").click();
+ }else if(view==="overview"){
+  app.innerHTML=`<div class="card row" style="align-items:end"><div><label>Date</label><input type="date" id="ed" value="${cur.date}"></div><div><label>Inspector</label><input type="text" id="en" value="${esc(cur.inspector)}"></div><div style="flex:0"><button id="rep">Generate report</button></div></div>
+  <div class="grid">${FLOORS.map((f,i)=>{const[s,c]=status(f);return`<div class="floor" data-f="${i}"><h3>${f}</h3><div><span class="badge ${c}">${s}</span> <small>${cur.floors[f].photos.length} 📷</small></div></div>`}).join("")}</div>`;
+  $("#ed").onchange=e=>{cur.date=e.target.value;save()};$("#en").oninput=e=>{cur.inspector=e.target.value;save()};
+  $("#rep").onclick=()=>go("report");app.querySelectorAll(".floor").forEach(d=>d.onclick=()=>{floorIdx=+d.dataset.f;go("floor")});
+ }else if(view==="floor"){const f=FLOORS[floorIdx],fl=cur.floors[f];
+  app.innerHTML=`<div class="tabs">${FLOORS.map((x,i)=>`<button data-t="${i}" class="${i===floorIdx?"on":""}">${x}</button>`).join("")}</div>
+  <div class="card"><div class="irow"><h2 style="margin:0;flex:1">${f}</h2><button class="btn2" id="allok">Mark unset as OK</button></div>
+  ${itemsFor(f).map((it,k)=>{const v=fl.items[it];return`<div class="item" data-k="${k}"><div class="irow"><div class="iname">${it}</div><div class="seg"><button class="s-ok ${v.s==="ok"?"on":""}" data-s="ok">OK</button><button class="s-is ${v.s==="issue"?"on":""}" data-s="issue">Issue</button><button class="s-na ${v.s==="na"?"on":""}" data-s="na">N/A</button></div><button class="nb" data-n>${v.n?"✎ Note":"+ Note"}</button></div><input type="text" class="note ${v.n||v.s==="issue"?"":"hidden"}" placeholder="Note (location, details)" value="${esc(v.n)}"></div>`}).join("")}</div>
+  <div class="card"><label style="margin-top:0">General comments</label><textarea id="gc">${esc(fl.comments)}</textarea></div>
+  <div class="card"><div class="irow"><h3 style="margin:0;flex:1">Photos</h3><button id="addp">📷 Add photos</button></div><div class="photos">${fl.photos.map((p,i)=>`<div class="ph"><img src="${p.data}"><button class="x" data-x="${i}">✕</button><input type="text" data-c="${i}" placeholder="Caption" value="${esc(p.caption)}"></div>`).join("")}</div></div>
+  <div class="row noprint">${floorIdx>0?`<button class="btn2" data-t="${floorIdx-1}">&larr; ${FLOORS[floorIdx-1]}</button>`:"<span></span>"}${floorIdx<FLOORS.length-1?`<button data-t="${floorIdx+1}">${FLOORS[floorIdx+1]} &rarr;</button>`:`<button id="done">Done – back to floors</button>`}</div>`;
+  app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{floorIdx=+b.dataset.t;render();scrollTo(0,0)});
+  app.querySelectorAll(".item").forEach(d=>{const it=itemsFor(f)[d.dataset.k],v=fl.items[it],note=d.querySelector(".note");
+   d.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{v.s=v.s===b.dataset.s?"":b.dataset.s;d.querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x.dataset.s===v.s));if(v.s==="issue"){note.classList.remove("hidden")}save()});
+   d.querySelector("[data-n]").onclick=()=>{note.classList.remove("hidden");note.focus()};note.oninput=()=>{v.n=note.value;save()}});
+  $("#allok").onclick=()=>{Object.values(fl.items).forEach(v=>{if(!v.s)v.s="ok"});save();render()};
+  $("#gc").oninput=e=>{fl.comments=e.target.value;save()};$("#addp").onclick=()=>$("#cam").click();
+  app.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{if(confirm("Delete this photo?")){fl.photos.splice(+b.dataset.x,1);save();render()}});
+  app.querySelectorAll("[data-c]").forEach(i=>i.oninput=()=>{fl.photos[+i.dataset.c].caption=i.value;save()});
+  const d=$("#done");if(d)d.onclick=()=>go("overview");
+ }else if(view==="report"){const issues=[];FLOORS.forEach(f=>itemsFor(f).forEach(it=>{const v=cur.floors[f].items[it];if(v.s==="issue")issues.push([f,it,v.n])}));
+  const lbl={ok:"OK",issue:"ISSUE",na:"N/A","":"Not checked"};
+  app.innerHTML=`<div class="noprint card row"><button onclick="print()">🖨 Print / Save as PDF</button></div><div id="report">
+  <h1 style="margin:0">388 Murray Road, Preston VIC</h1><div>Owners Corporation PS 733538 – Monthly Building Inspection</div><p><b>Date:</b> ${fmt(cur.date)} &nbsp; <b>Inspector:</b> ${esc(cur.inspector)}</p>
+  <div class="sum"><h2 style="border:0;margin:4px 0">Summary of issues (${issues.length})</h2>${issues.length?`<ol>${issues.map(i=>`<li><b>${i[0]}</b> – ${i[1]}${i[2]?": "+esc(i[2]):""}</li>`).join("")}</ol>`:"<p>No issues recorded.</p>"}</div>
+  ${FLOORS.map(f=>{const fl=cur.floors[f],[s]=status(f);return`<div class="fsec"><h2>${f} – ${s}</h2><table><tr><th>Item</th><th style="width:110px">Result</th><th>Note</th></tr>${itemsFor(f).map(it=>{const v=fl.items[it];return`<tr class="${v.s==="issue"?"rIssue":""}"><td>${it}</td><td>${lbl[v.s]}</td><td>${esc(v.n)}</td></tr>`}).join("")}</table>${fl.comments?`<p><b>Comments:</b> ${esc(fl.comments).replace(/\n/g,"<br>")}</p>`:""}${fl.photos.map(p=>`<div class="rp"><img src="${p.data}"><div>${esc(p.caption)}</div></div>`).join("")}</div>`}).join("")}</div>`;
+ }}
+function shrink(file){return new Promise(res=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const M=1600,sc=Math.min(1,M/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",0.8))};im.onerror=()=>res(null);im.src=u})}
+$("#cam").onchange=async e=>{const fl=cur.floors[FLOORS[floorIdx]];for(const f of e.target.files){const d=await shrink(f);if(d)fl.photos.push({data:d,caption:""})}e.target.value="";save();render()};
+$("#imp").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());for(const i of j.inspections||[])await put(i);alert("Imported "+(j.inspections||[]).length+" inspection(s).")}catch(x){alert("Import failed: "+x.message)}e.target.value="";render()};
+openDB().then(render).catch(e=>app.innerHTML="<p>Storage unavailable: "+e+"</p>");
+</script></body></html>
