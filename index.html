@@ -43,7 +43,7 @@ textarea{min-height:90px}label{font-weight:600;display:block;margin:10px 0 6px}
 // ===== EDIT CHECKLISTS HERE =====
 const FLOORS=["Basement","Ground","Level 1","Level 2","Level 3","Level 4","Roof"];
 const COMMON=["Lighting not working","Damaged walls","Damaged carpet / flooring","Fire doors working and closing properly","Exit signs and emergency lighting","Fire extinguishers / hose reels present and in date","Cleanliness / rubbish","Doors, locks and access","Signage","Trip hazards"];
-const EXTRA={"Basement":["Car park door / gate operating","Drainage / water leaks","Bin room odour"],"Roof":["Roof access secured","Gutters / drains clear","Plant equipment condition"]};
+const EXTRA={"Basement":["Car park door / gate operating","Drainage / water leaks","Bin room odour"],"Ground":["Odour"],"Level 1":["Odour"],"Level 2":["Odour"],"Level 3":["Odour"],"Level 4":["Odour"],"Roof":["Roof access secured","Gutters / drains clear","Plant equipment condition"]};
 const DEFAULT_INSPECTOR="Marc Foley";
 // ================================
 const itemsFor=f=>COMMON.concat(EXTRA[f]||[]);
